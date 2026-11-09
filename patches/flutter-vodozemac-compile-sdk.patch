@@ -1,14 +1,3 @@
---- a/cargokit/gradle/plugin.gradle
-+++ b/cargokit/gradle/plugin.gradle
-@@ -170,7 +170,7 @@
-                     ndkVersion = plugin.project.android.ndkVersion
-                     sdkDirectory = plugin.project.android.sdkDirectory
-                     minSdkVersion = plugin.project.android.defaultConfig.minSdkVersion.apiLevel as int
--                    compileSdkVersion = plugin.project.android.compileSdkVersion.substring(8) as int
-+                    compileSdkVersion = plugin.project.android.compileSdk as int
-                     targetPlatforms = platforms
-                     pluginFile = CargoKitPlugin.file
-                 }
 --- a/cargokit/run_build_tool.sh
 +++ b/cargokit/run_build_tool.sh
 @@ -12,7 +12,10 @@

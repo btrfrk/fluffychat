@@ -38,8 +38,8 @@ prepare() {
 }
 
 mkdir -p "$root/build"
-prepare flutter_vodozemac 0.8.1 \
-    209e7661da113a5f889ae55d574c48f245145def64df9a9fcac04d147e6f9d4e \
+prepare flutter_vodozemac 0.9.0 \
+    d2705fed826e6846901b5f05ff354cbcc724593fe2039b68aff1eccf139ab5cb \
     flutter-vodozemac-compile-sdk.patch
 prepare flutter_shortcuts_new 2.0.0 \
     16ee1c8a9bc9586b5117ebb774a8ff6b396f856743e97251eb483c4dc5769d7f \

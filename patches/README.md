@@ -1,7 +1,7 @@
 # Matrix SDK token refresh patch
 
 This personal build applies `matrix-sdk-token-refresh.patch` to Matrix SDK
-commit `b325fb82049b9ad656682e59f57bd1b31ba33813` (14.1.0).
+commit `a6b45c198070c8a9c4b6938f3680a634bbe7707a` (14.2.0).
 `pubspec_overrides.yaml` selects the generated `build/matrix-sdk` directory.
 Prepare it before dependency resolution in a fresh checkout:
 
@@ -39,16 +39,17 @@ from the SDK's `pubspec.yaml`, move its `rust/` into the SDK tree and run
 
 `scripts/prepare-pub-packages.sh` downloads pinned pub.dev archives, checks
 their sha256, and applies a patch from this directory into `build/<package>`.
-`pubspec_overrides.yaml` selects the results. Both patches fix Android builds
-against `compileSdk = 37`:
+`pubspec_overrides.yaml` selects the results.
 
-- `flutter-vodozemac-compile-sdk.patch`: cargokit parses `compileSdkVersion`
-  (`android-37.0`) as an integer; read `compileSdk` instead. Also resolves
-  the build tool directory in `run_build_tool.sh`: its cache key hashes a
-  listing containing the path as spelled, and Gradle and rustc's linker
-  setting spell it differently, so every other call reran `pub get`.
-- `flutter-shortcuts-new-compile-sdk.patch`: compile against 36; its AndroidX
-  dependencies require at least 34.
+- `flutter-vodozemac-compile-sdk.patch`: resolves the build tool directory in
+  cargokit's `run_build_tool.sh`: its cache key hashes a listing containing
+  the path as spelled, and Gradle and rustc's linker setting spell it
+  differently, so every other call reran `pub get`. Up to 0.8.1 it also made
+  cargokit read `compileSdk`; 0.9.0 no longer reads `compileSdkVersion`,
+  which failed to parse `android-37.0`.
+- `flutter-shortcuts-new-compile-sdk.patch`: compile against 36 so the
+  Android build works against `compileSdk = 37`; its AndroidX dependencies
+  require at least 34.
 
 Run `flutter pub get` after changing `pubspec_overrides.yaml`; `flutter build`
 does not re-resolve on its own.
