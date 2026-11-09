@@ -168,7 +168,15 @@ Future<void> _tryPushHelper(
 
   Logs().v('Push helper got notification event of type ${event.type}.');
 
-  if (!client.pushruleEvaluator.match(event).notify) {
+  if (event.type == EventTypes.Reaction) {
+    // .m.rule.reaction suppresses all reactions, so notify on reactions to
+    // own events based on the room's notification setting instead.
+    if (event.room.pushRuleState != PushRuleState.notify ||
+        !await _isReactionToOwnEvent(event)) {
+      Logs().i('Push helper: filtered reaction.');
+      return;
+    }
+  } else if (!client.pushruleEvaluator.match(event).notify) {
     Logs().i('Push helper: filtered by client-side push rules.');
     return;
   }
@@ -482,6 +490,21 @@ extension on PushNotification {
     }
     if (clientName == null) return roomId.hashCode;
     return '${clientName}_$roomId'.hashCode;
+  }
+}
+
+Future<bool> _isReactionToOwnEvent(Event reaction) async {
+  final eventId = reaction.relationshipEventId;
+  if (reaction.relationshipType != RelationshipTypes.reaction ||
+      eventId == null) {
+    return false;
+  }
+  try {
+    final event = await reaction.room.getEventById(eventId);
+    return event?.senderId == reaction.room.client.userID;
+  } catch (e) {
+    Logs().w('Push helper: unable to load reacted-to event', e);
+    return false;
   }
 }
 
