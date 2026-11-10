@@ -646,6 +646,9 @@ class ChatController extends State<ChatPageWithRoom>
     final timeline = this.timeline;
     if (timeline == null || timeline.events.isEmpty) return;
 
+    // The newest loaded event is not the newest in the room
+    if (!timeline.allowNewEvent && setOnLatestEvent) return;
+
     // Do not set read marker on rtc notification while call is active. This
     // mutes callkit.
     if (room.hasActiveMatrixRtcCall &&
@@ -679,8 +682,23 @@ class ChatController extends State<ChatPageWithRoom>
     // This is a sending event, we do not set a readmarker yet
     if (eventId.isValidMatrixIdStrict() == false) return;
 
+    // The fully read marker must be a visible event, but the server may count
+    // later hidden events (e.g. reactions) by push rules the client cannot
+    // evaluate. At the bottom of the timeline, put the receipt on the newest
+    // event so they are cleared too.
+    final receiptEventId = setOnLatestEvent
+        ? timeline.events
+                  .firstWhereOrNull(
+                    (event) =>
+                        event.status.isSent &&
+                        event.eventId.isValidMatrixIdStrict(),
+                  )
+                  ?.eventId ??
+              eventId
+        : eventId;
+
     // We are already setting a read marker on this event
-    if (_setReadMarkerEventId == eventId) return;
+    if (_setReadMarkerEventId == receiptEventId) return;
 
     // Already set a read marker on this event
     if (room.fullyRead == eventId && !setOnLatestEvent) return;
@@ -693,16 +711,19 @@ class ChatController extends State<ChatPageWithRoom>
       return;
     }
 
-    Logs().d('Set read marker...', eventId);
-    _setReadMarkerEventId = eventId;
+    Logs().d('Set read marker...', '$eventId, receipt $receiptEventId');
+    _setReadMarkerEventId = receiptEventId;
     // ignore: unawaited_futures
-    timeline
+    room
         .setReadMarker(
-          eventId: eventId,
+          eventId,
+          mRead: receiptEventId,
           public: AppSettings.sendPublicReadReceipts.value,
         )
         .whenComplete(() {
-          if (_setReadMarkerEventId == eventId) _setReadMarkerEventId = null;
+          if (_setReadMarkerEventId == receiptEventId) {
+            _setReadMarkerEventId = null;
+          }
         });
   }
 
