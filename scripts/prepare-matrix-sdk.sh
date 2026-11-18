@@ -3,7 +3,7 @@ set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 source_repo=${1:?Usage: scripts/prepare-matrix-sdk.sh /path/to/matrix-dart-sdk}
-base=a6b45c198070c8a9c4b6938f3680a634bbe7707a
+base=0274bbbea9b319c3decf46c1b821f53bc6d00488
 patch="$root/patches/matrix-sdk-token-refresh.patch"
 destination="$root/build/matrix-sdk"
 

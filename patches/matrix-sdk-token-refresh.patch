@@ -1,10 +1,10 @@
 diff --git a/lib/src/client.dart b/lib/src/client.dart
-index 333d9c11..23b8c1c7 100644
+index 6e1627e2..df19651c 100644
 --- a/lib/src/client.dart
 +++ b/lib/src/client.dart
-@@ -353,24 +353,19 @@ class Client extends MatrixApi {
-       ),
-     };
+@@ -367,25 +367,20 @@ class Client extends MatrixApi {
+     // A logout or another login while the request ran must not get these.
+     if (userID != userId || deviceID != deviceId) return;
  
 -    accessToken = tokenResponse.accessToken;
      final expiresIn = tokenResponse.expiresIn;
@@ -16,18 +16,19 @@ index 333d9c11..23b8c1c7 100644
 -      homeserverUrl: homeserverUrl,
 -      token: tokenResponse.accessToken,
 -      tokenExpiresAt: tokenExpiresAt,
--      refreshToken: tokenResponse.refreshToken,
++    final updated = await database.updateClientTokens(
++      refreshToken,
++      tokenResponse.accessToken,
++      tokenExpiresAt,
+       // Without a new one, the spec keeps the old refresh token valid.
+-      refreshToken: tokenResponse.refreshToken ?? refreshToken,
 -      userId: userId,
 -      deviceId: deviceId,
 -      deviceName: deviceName,
 -      prevBatch: prevBatch,
 -      olmAccount: encryption?.pickledOlmAccount,
 -      oidcClientId: oidcClientId,
-+    final updated = await database.updateClientTokens(
-+      refreshToken,
-+      tokenResponse.accessToken,
-+      tokenExpiresAt,
-+      tokenResponse.refreshToken,
++      tokenResponse.refreshToken ?? refreshToken,
      );
 +    if (!updated) throw StateError('Session changed during token refresh');
 +    accessToken = tokenResponse.accessToken;
@@ -118,10 +119,10 @@ index 7abc1ff2..f302ddeb 100644
      if (boxCollection._txnCache != null) {
        boxCollection._txnCache!.add((txn) => put(key, val, txn));
 diff --git a/lib/src/database/matrix_sdk_database.dart b/lib/src/database/matrix_sdk_database.dart
-index b348f2b8..8e714108 100644
+index 53ce8b33..0ed4f35a 100644
 --- a/lib/src/database/matrix_sdk_database.dart
 +++ b/lib/src/database/matrix_sdk_database.dart
-@@ -1384,6 +1384,50 @@ class MatrixSdkDatabase extends DatabaseApi with DatabaseFileStorage {
+@@ -1404,6 +1404,50 @@ class MatrixSdkDatabase extends DatabaseApi with DatabaseFileStorage {
    Future<void> transaction(Future<void> Function() action) =>
        _collection.transaction(action);
  
@@ -171,7 +172,7 @@ index b348f2b8..8e714108 100644
 +
    @override
    Future<void> updateClientKeys(String olmAccount) async {
-     final secureStorage = this.secureStorage;
+     await secureStorage?.write(_secureStorageOlmAccountKey, olmAccount);
 diff --git a/lib/src/database/sqflite_box.dart b/lib/src/database/sqflite_box.dart
 index 89cd628b..cce26b95 100644
 --- a/lib/src/database/sqflite_box.dart
@@ -327,10 +328,10 @@ index 497c33e4..6512b991 100644
        await box.put('fluffy', data);
 diff --git a/test/token_refresh_test.dart b/test/token_refresh_test.dart
 new file mode 100644
-index 00000000..aa8907a1
+index 00000000..33ac1a7f
 --- /dev/null
 +++ b/test/token_refresh_test.dart
-@@ -0,0 +1,321 @@
+@@ -0,0 +1,322 @@
 +// SPDX-FileCopyrightText: 2026 Contributors to FluffyChat
 +//
 +// SPDX-License-Identifier: AGPL-3.0-or-later
@@ -575,10 +576,11 @@ index 00000000..aa8907a1
 +      api.delayRefresh = true;
 +      final refresh = client.refreshAccessToken();
 +      await api.started.future;
-+      await client.clear(reason: SessionClearReason.logout);
-+      final rejected = expectLater(refresh, throwsStateError);
++      // clear() waits for the running refresh before it clears.
++      final cleared = client.clear(reason: SessionClearReason.logout);
 +      api.finish.complete();
-+      await rejected;
++      await refresh;
++      await cleared;
 +      expect(await client.database.getClient(client.clientName), isNull);
 +      expect(client.accessToken, isNull);
 +    });

@@ -1,7 +1,7 @@
 # Matrix SDK token refresh patch
 
 This personal build applies `matrix-sdk-token-refresh.patch` to Matrix SDK
-commit `a6b45c198070c8a9c4b6938f3680a634bbe7707a` (14.2.0).
+commit `0274bbbea9b319c3decf46c1b821f53bc6d00488` (16.0.4).
 `pubspec_overrides.yaml` selects the generated `build/matrix-sdk` directory.
 Prepare it before dependency resolution in a fresh checkout:
 
